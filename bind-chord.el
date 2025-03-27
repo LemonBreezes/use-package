@@ -5,7 +5,7 @@
 ;; Author: Justin Talbott <justin@waymondo.com>
 ;; Keywords: convenience, tools, extensions
 ;; URL: https://github.com/jwiegley/use-package
-;; Version: 0.2.1
+;; Version: 0.2.2
 ;; Package-Requires: ((emacs "24.3") (bind-key "1.0") (key-chord "0.6"))
 ;; Filename: bind-chord.el
 
@@ -28,17 +28,21 @@
 
 (require 'bind-key)
 (require 'key-chord nil t)
+(declare-function key-chord-define "key-chord" (keymap keys command))
 
 ;;;###autoload
 (defmacro bind-chord (chord command &optional keymap)
   "Bind CHORD to COMMAND in KEYMAP (`global-map' if not passed)."
   (let ((key1 (logand 255 (aref chord 0)))
         (key2 (logand 255 (aref chord 1))))
-    (if (eq key1 key2)
-        `(bind-key (vector 'key-chord ,key1 ,key2) ,command ,keymap)
-      `(progn
-         (bind-key (vector 'key-chord ,key1 ,key2) ,command ,keymap)
-         (bind-key (vector 'key-chord ,key2 ,key1) ,command ,keymap)))))
+    `(progn
+       ;; Use key-chord's built-in define function to properly register keys
+       (key-chord-define ,(if keymap keymap 'global-map) 
+                        ,(cond 
+                          ((stringp chord) chord)
+                          ((vectorp chord) chord)
+                          (t `(string ,key1 ,key2)))
+                        ,command))))
 
 (defun bind-chords-form (args keymap)
   "Bind multiple chords at once.
